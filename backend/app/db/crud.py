@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional, List
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import CollectRecord
@@ -114,3 +114,11 @@ async def find_by_version_hash(
         select(CollectRecord).where(CollectRecord.version_hash == version_hash)
     )
     return result.scalar_one_or_none()
+
+
+async def delete_record(session: AsyncSession, record_id: int) -> bool:
+    """删除采集记录"""
+    stmt = delete(CollectRecord).where(CollectRecord.id == record_id)
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0

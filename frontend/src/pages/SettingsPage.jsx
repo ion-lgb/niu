@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Card, Form, Input, Select, Checkbox, Button, Space, Tag, Row, Col, message } from 'antd';
+import { useState, useEffect } from 'react';
+import { Card, Form, Input, Select, Checkbox, Button, Space, Tag, Row, Col, message, Spin } from 'antd';
 import {
     GlobalOutlined, RobotOutlined, SettingOutlined,
-    KeyOutlined, ApiOutlined, SaveOutlined,
+    KeyOutlined, ApiOutlined, SaveOutlined, LoadingOutlined,
 } from '@ant-design/icons';
-import { testConnection } from '../api';
+import { getSettings, updateSettings, testConnection } from '../api';
 
 function SettingsPage() {
     const [config, setConfig] = useState({
@@ -21,20 +21,53 @@ function SettingsPage() {
         rewrite_style: 'resource_site',
     });
 
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState({});
     const [testResults, setTestResults] = useState({});
 
+    // 页面加载时拉取配置
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await getSettings();
+                setConfig((prev) => ({ ...prev, ...res.data }));
+            } catch (err) {
+                message.error('加载配置失败');
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
     const updateConfig = (key, value) => {
         setConfig({ ...config, [key]: value });
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await updateSettings(config);
+            message.success('设置已保存');
+        } catch (err) {
+            message.error('保存失败: ' + (err.response?.data?.detail || err.message));
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleTestConnection = async (type) => {
         setTesting({ ...testing, [type]: true });
         setTestResults({ ...testResults, [type]: null });
         try {
-            await testConnection(type);
-            setTestResults({ ...testResults, [type]: { success: true } });
-            message.success(`${type === 'wordpress' ? 'WordPress' : 'AI'} 连接成功`);
+            const res = await testConnection(type);
+            const data = res.data;
+            setTestResults({ ...testResults, [type]: { success: data.ok, error: data.error } });
+            if (data.ok) {
+                message.success(`${type === 'wp' ? 'WordPress' : 'AI'} 连接成功`);
+            } else {
+                message.error(`连接失败: ${data.error}`);
+            }
         } catch (err) {
             const errorMsg = err.response?.data?.detail || err.message;
             setTestResults({ ...testResults, [type]: { success: false, error: errorMsg } });
@@ -52,6 +85,14 @@ function SettingsPage() {
             : <Tag color="error">{result.error || '连接失败'}</Tag>;
     };
 
+    if (loading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} />} tip="加载配置..." />
+            </div>
+        );
+    }
+
     return (
         <div>
             {/* WordPress 设置 */}
@@ -60,14 +101,14 @@ function SettingsPage() {
                     <Space>
                         <GlobalOutlined />
                         <span>WordPress 连接</span>
-                        <ConnectionTag type="wordpress" />
+                        <ConnectionTag type="wp" />
                     </Space>
                 }
                 extra={
                     <Button
                         icon={<ApiOutlined />}
-                        loading={testing.wordpress}
-                        onClick={() => handleTestConnection('wordpress')}
+                        loading={testing.wp}
+                        onClick={() => handleTestConnection('wp')}
                     >
                         测试连接
                     </Button>
@@ -228,7 +269,13 @@ function SettingsPage() {
             </Card>
 
             {/* 保存按钮 */}
-            <Button type="primary" size="large" icon={<SaveOutlined />}>
+            <Button
+                type="primary"
+                size="large"
+                icon={<SaveOutlined />}
+                loading={saving}
+                onClick={handleSave}
+            >
                 保存设置
             </Button>
         </div>

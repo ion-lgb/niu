@@ -84,3 +84,13 @@ async def get_record(record_id: int, session: AsyncSession = Depends(get_session
         "created_at": record.created_at.isoformat() if record.created_at else None,
         "updated_at": record.updated_at.isoformat() if record.updated_at else None,
     }
+
+
+@router.delete("/records/{record_id}")
+async def delete_record(record_id: int, session: AsyncSession = Depends(get_session)):
+    """删除采集记录"""
+    deleted = await crud.delete_record(session, record_id)
+    if not deleted:
+        from fastapi import HTTPException
+        raise HTTPException(404, f"记录 {record_id} 不存在")
+    return {"ok": True, "id": record_id}

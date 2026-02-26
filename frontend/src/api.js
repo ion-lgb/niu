@@ -24,6 +24,11 @@ export const enqueueGame = (data) => api.post('/queue/enqueue', data);
 export const enqueueBatch = (data) => api.post('/queue/enqueue/batch', data);
 
 // Settings API
+export const getSettings = () => api.get('/settings');
+export const updateSettings = (data) => api.put('/settings', data);
 export const testConnection = (type) => api.post(`/settings/test-${type}`);
+
+// Delete record
+export const deleteRecord = (id) => api.delete(`/history/records/${id}`);
 
 export default api;

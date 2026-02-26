@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react';
 import {
     Input, Button, Card, Row, Col, Space, Tag, Typography, Alert, Spin, Empty,
-    Select, Checkbox, Collapse, Descriptions,
+    Select, Checkbox, Collapse, Descriptions, message, Affix,
 } from 'antd';
 import {
     SearchOutlined, EyeOutlined, SendOutlined, SettingOutlined,
     LinkOutlined, TagsOutlined, FileTextOutlined, ThunderboltOutlined,
+    CheckSquareOutlined,
 } from '@ant-design/icons';
-import { searchGames, previewGame, collectGame } from '../api';
+import { searchGames, previewGame, collectGame, enqueueBatch } from '../api';
 
 const { Text, Title } = Typography;
 
@@ -20,6 +21,11 @@ function CollectPage() {
     const [previewing, setPreviewing] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [publishResult, setPublishResult] = useState(null);
+
+    // 批量选择
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [batchLoading, setBatchLoading] = useState(false);
+
     const [options, setOptions] = useState({
         enable_rewrite: true,
         enable_analyze: true,
@@ -34,6 +40,7 @@ function CollectPage() {
         setSelectedGame(null);
         setPreview(null);
         setPublishResult(null);
+        setSelectedIds([]);
         try {
             const res = await searchGames(query.trim());
             setResults(res.data.items || []);
@@ -76,6 +83,35 @@ function CollectPage() {
             setPublishResult({ error: err.message });
         } finally {
             setPublishing(false);
+        }
+    };
+
+    // 批量入队
+    const handleBatchEnqueue = async () => {
+        if (selectedIds.length === 0) return;
+        setBatchLoading(true);
+        try {
+            const res = await enqueueBatch({ app_ids: selectedIds, options });
+            message.success(`已将 ${res.data.count} 个游戏加入采集队列`);
+            setSelectedIds([]);
+        } catch (err) {
+            message.error('批量入队失败: ' + (err.response?.data?.detail || err.message));
+        } finally {
+            setBatchLoading(false);
+        }
+    };
+
+    const toggleSelect = (id) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === results.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(results.map((g) => g.id));
         }
     };
 
@@ -188,42 +224,62 @@ function CollectPage() {
             {/* 搜索结果 */}
             {!searching && results.length > 0 && (
                 <>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                        找到 {results.length} 个结果
-                    </Text>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <Text type="secondary">找到 {results.length} 个结果</Text>
+                        <Space>
+                            <Checkbox
+                                checked={selectedIds.length === results.length && results.length > 0}
+                                indeterminate={selectedIds.length > 0 && selectedIds.length < results.length}
+                                onChange={toggleSelectAll}
+                            >
+                                全选
+                            </Checkbox>
+                        </Space>
+                    </div>
                     <Row gutter={[16, 16]}>
                         {results.map((game) => (
                             <Col key={game.id} xs={24} sm={12} md={8} lg={6}>
                                 <Card
                                     hoverable
                                     size="small"
-                                    onClick={() => handleSelectGame(game)}
                                     style={{
-                                        borderColor: selectedGame?.id === game.id ? '#6366f1' : undefined,
+                                        borderColor: selectedGame?.id === game.id ? '#6366f1' : selectedIds.includes(game.id) ? '#6366f180' : undefined,
                                         boxShadow: selectedGame?.id === game.id ? '0 0 12px rgba(99, 102, 241, 0.3)' : undefined,
                                     }}
                                     cover={
-                                        <img
-                                            alt={game.name}
-                                            src={game.tiny_image}
-                                            style={{ width: '100%', aspectRatio: '460/215', objectFit: 'cover' }}
-                                        />
+                                        <div style={{ position: 'relative' }}>
+                                            <img
+                                                alt={game.name}
+                                                src={game.tiny_image}
+                                                style={{ width: '100%', aspectRatio: '460/215', objectFit: 'cover', cursor: 'pointer' }}
+                                                onClick={() => handleSelectGame(game)}
+                                            />
+                                            <Checkbox
+                                                checked={selectedIds.includes(game.id)}
+                                                onChange={() => toggleSelect(game.id)}
+                                                style={{
+                                                    position: 'absolute', top: 8, left: 8,
+                                                }}
+                                            />
+                                        </div>
                                     }
                                 >
-                                    <Card.Meta
-                                        title={<Text ellipsis style={{ fontSize: 14 }}>{game.name}</Text>}
-                                        description={
-                                            <Space size={4} wrap>
-                                                <Text style={{ color: '#66c0f4', fontWeight: 600, fontSize: 13 }}>
-                                                    {formatPrice(game.price)}
-                                                </Text>
-                                                <Text type="secondary" style={{ fontSize: 12 }}>ID: {game.id}</Text>
-                                                {game.metascore && (
-                                                    <Tag color="green" style={{ fontSize: 11 }}>{game.metascore}</Tag>
-                                                )}
-                                            </Space>
-                                        }
-                                    />
+                                    <div onClick={() => handleSelectGame(game)} style={{ cursor: 'pointer' }}>
+                                        <Card.Meta
+                                            title={<Text ellipsis style={{ fontSize: 14 }}>{game.name}</Text>}
+                                            description={
+                                                <Space size={4} wrap>
+                                                    <Text style={{ color: '#66c0f4', fontWeight: 600, fontSize: 13 }}>
+                                                        {formatPrice(game.price)}
+                                                    </Text>
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>ID: {game.id}</Text>
+                                                    {game.metascore && (
+                                                        <Tag color="green" style={{ fontSize: 11 }}>{game.metascore}</Tag>
+                                                    )}
+                                                </Space>
+                                            }
+                                        />
+                                    </div>
                                 </Card>
                             </Col>
                         ))}
@@ -234,6 +290,38 @@ function CollectPage() {
             {/* 无结果 */}
             {!searching && results.length === 0 && query && (
                 <Empty description="未找到匹配的游戏" style={{ padding: '60px 0' }} />
+            )}
+
+            {/* 批量操作栏 */}
+            {selectedIds.length > 0 && (
+                <Affix offsetBottom={24}>
+                    <Card
+                        size="small"
+                        style={{
+                            background: 'rgba(99, 102, 241, 0.15)',
+                            backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Space>
+                                <CheckSquareOutlined style={{ color: '#6366f1' }} />
+                                <Text strong>已选 {selectedIds.length} 个游戏</Text>
+                                <Button type="link" size="small" onClick={() => setSelectedIds([])}>
+                                    清除选择
+                                </Button>
+                            </Space>
+                            <Button
+                                type="primary"
+                                icon={<SendOutlined />}
+                                loading={batchLoading}
+                                onClick={handleBatchEnqueue}
+                            >
+                                批量加入采集队列
+                            </Button>
+                        </div>
+                    </Card>
+                </Affix>
             )}
 
             {/* 选中游戏操作区 */}
