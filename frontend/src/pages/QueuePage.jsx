@@ -35,10 +35,10 @@ export default function QueuePage() {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     const statCards = [
-        { key: 'total', label: '总任务', color: 'var(--accent-primary)' },
-        { key: 'completed', label: '已完成', color: 'var(--status-success)' },
-        { key: 'running', label: '进行中', color: 'var(--status-warning)' },
-        { key: 'failed', label: '失败', color: 'var(--status-error)' },
+        { key: 'total', label: '总任务', color: 'var(--accent-primary)', icon: ListChecks },
+        { key: 'completed', label: '已完成', color: 'var(--status-success)', icon: CheckCircle2 },
+        { key: 'running', label: '进行中', color: 'var(--status-warning)', icon: Play },
+        { key: 'failed', label: '失败', color: 'var(--status-error)', icon: XCircle },
     ];
 
     const statusBadge = (status) => {
@@ -62,13 +62,23 @@ export default function QueuePage() {
             </div>
 
             {/* 统计卡片 */}
-            <div className="stats-grid">
-                {statCards.map((c) => (
-                    <div key={c.key} className="card stat-card">
-                        <div className="stat-value" style={{ color: c.color }}>{stats[c.key]}</div>
-                        <div className="stat-label">{c.label}</div>
-                    </div>
-                ))}
+            <div className="stats-row">
+                {statCards.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                        <div key={c.key} className="card stat-card">
+                            <div className="stat-content">
+                                <div className="stat-label">{c.label}</div>
+                                <div className="stat-value-container">
+                                    <div className="stat-value">{stats[c.key]}</div>
+                                </div>
+                            </div>
+                            <div className="stat-icon-wrapper" style={{ background: c.color }}>
+                                <Icon size={24} color="#fff" />
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* 过滤标签 */}
@@ -76,7 +86,7 @@ export default function QueuePage() {
                 {Object.entries(STATUS_MAP).map(([key, { label, icon: Icon }]) => (
                     <button
                         key={key}
-                        className={`tab ${filter === key ? 'tab-active' : ''}`}
+                        className={`tab ${filter === key ? 'active' : ''}`}
                         onClick={() => setFilter(key)}
                     >
                         <Icon size={14} /> {label}
@@ -95,37 +105,52 @@ export default function QueuePage() {
                     <p style={{ opacity: 0.6, fontSize: '0.875rem' }}>在「游戏采集」页面搜索并发布游戏后，记录将显示在这里</p>
                 </div>
             ) : (
-                <div className="table-container" style={{ marginTop: '1rem' }}>
-                    <table>
+                <div className="table-container" style={{ marginTop: '1.5rem', overflowX: 'auto' }}>
+                    <table style={{ minWidth: '800px' }}>
+                        <colgroup>
+                            <col style={{ width: '120px' }} />
+                            <col style={{ width: 'auto' }} />
+                            <col style={{ width: '120px' }} />
+                            <col style={{ width: '100px' }} />
+                            <col style={{ width: '120px' }} />
+                            <col style={{ width: '180px' }} />
+                            <col style={{ width: '100px' }} />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>App ID</th>
                                 <th>游戏名称</th>
-                                <th>操作</th>
+                                <th>任务类型</th>
                                 <th>状态</th>
                                 <th>WP 文章</th>
                                 <th>创建时间</th>
-                                <th>动作</th>
+                                <th style={{ textAlign: 'center' }}>操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             {records.map((r) => (
                                 <tr key={r.id}>
                                     <td><code>{r.app_id}</code></td>
-                                    <td>{r.game_name || '-'}</td>
-                                    <td>{r.action}</td>
-                                    <td>{statusBadge(r.status)}</td>
-                                    <td>{r.post_id ? <a href="#" style={{ color: 'var(--accent-primary)' }}>#{r.post_id}</a> : '-'}</td>
-                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem', opacity: 0.7 }}>
-                                        {r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : '-'}
+                                    <td>
+                                        <div style={{ fontWeight: 500 }}>{r.game_name || '-'}</div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <span className="badge badge-neutral">
+                                            {r.action === 'create' ? '发布文章' : r.action === 'update' ? '更新数据' : r.action}
+                                        </span>
+                                    </td>
+                                    <td>{statusBadge(r.status)}</td>
+                                    <td>{r.post_id ? <a href="#" style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>#{r.post_id}</a> : '-'}</td>
+                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        {r.created_at ? new Date(r.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                             {r.status === 'failed' && (
-                                                <button className="btn btn-sm" title="重试"><RotateCcw size={14} /></button>
+                                                <button className="btn btn-sm btn-secondary" title="重试"><RotateCcw size={14} /></button>
                                             )}
-                                            <button className="btn btn-sm" title="删除" style={{ color: 'var(--status-error)' }}>
-                                                <Trash2 size={14} />
+                                            <button className="btn btn-sm btn-ghost" title="删除" style={{ color: 'var(--status-error)' }}>
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </td>

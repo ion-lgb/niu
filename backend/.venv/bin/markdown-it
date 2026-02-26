@@ -1,4 +1,4 @@
-#!/Users/ion/xm/niu/steam-collector/backend/.venv/bin/python3
+#!/Users/ion/xm/niu/backend/.venv/bin/python3
 import sys
 from markdown_it.cli.parse import main
 if __name__ == '__main__':
