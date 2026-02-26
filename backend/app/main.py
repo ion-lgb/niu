@@ -43,12 +43,16 @@ from app.api.collect import router as collect_router  # noqa: E402
 from app.api.settings_api import router as settings_router  # noqa: E402
 from app.api.history import router as history_router  # noqa: E402
 from app.api.queue_api import router as queue_router  # noqa: E402
+from app.api.dashboard import router as dashboard_router  # noqa: E402
+from app.api.events import router as events_router  # noqa: E402
 
 app.include_router(steam_router, prefix="/api/steam", tags=["Steam"])
 app.include_router(collect_router, prefix="/api", tags=["采集"])
 app.include_router(settings_router, prefix="/api/settings", tags=["设置"])
 app.include_router(history_router, prefix="/api/history", tags=["历史"])
 app.include_router(queue_router, prefix="/api/queue", tags=["队列"])
+app.include_router(dashboard_router, prefix="/api/dashboard", tags=["仪表盘"])
+app.include_router(events_router, prefix="/api/events", tags=["事件"])
 
 
 @app.get("/api/health")

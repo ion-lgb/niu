@@ -55,6 +55,17 @@ async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = No
             )
 
         logger.info(f"[队列] 采集完成 app_id={app_id} action={game_ctx.action}")
+
+        # 发布事件到 SSE
+        from app.api.events import publish
+        publish({
+            "type": "task_done",
+            "app_id": app_id,
+            "game_name": game_ctx.steam_data.get("name", "") if game_ctx.steam_data else "",
+            "action": game_ctx.action,
+            "post_id": game_ctx.post_id,
+        })
+
         return {"app_id": app_id, "action": game_ctx.action, "post_id": game_ctx.post_id}
 
     except Exception as e:
@@ -63,6 +74,15 @@ async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = No
             await crud.update_record_status(
                 session, record_id, status="failed", error=str(e)
             )
+
+        # 发布失败事件
+        from app.api.events import publish
+        publish({
+            "type": "task_fail",
+            "app_id": app_id,
+            "error": str(e)[:200],
+        })
+
         raise
 
 

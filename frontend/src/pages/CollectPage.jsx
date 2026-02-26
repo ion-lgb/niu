@@ -1,14 +1,15 @@
 import { useState, useCallback } from 'react';
 import {
     Input, Button, Card, Row, Col, Space, Tag, Typography, Alert, Spin, Empty,
-    Select, Checkbox, Collapse, Descriptions, message, Affix,
+    Select, Checkbox, Collapse, Descriptions, message, Affix, Modal, Carousel,
 } from 'antd';
 import {
     SearchOutlined, EyeOutlined, SendOutlined, SettingOutlined,
     LinkOutlined, TagsOutlined, FileTextOutlined, ThunderboltOutlined,
-    CheckSquareOutlined,
+    CheckSquareOutlined, CalendarOutlined, TeamOutlined, StarOutlined,
+    InfoCircleOutlined,
 } from '@ant-design/icons';
-import { searchGames, previewGame, collectGame, enqueueBatch } from '../api';
+import { searchGames, previewGame, collectGame, enqueueBatch, getGameDetails } from '../api';
 
 const { Text, Title } = Typography;
 
@@ -25,6 +26,11 @@ function CollectPage() {
     // 批量选择
     const [selectedIds, setSelectedIds] = useState([]);
     const [batchLoading, setBatchLoading] = useState(false);
+
+    // 游戏详情 Modal
+    const [detailModal, setDetailModal] = useState(false);
+    const [gameDetail, setGameDetail] = useState(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     const [options, setOptions] = useState({
         enable_rewrite: true,
@@ -51,10 +57,23 @@ function CollectPage() {
         }
     }, [query]);
 
-    const handleSelectGame = (game) => {
+    const handleSelectGame = async (game) => {
         setSelectedGame(game);
         setPreview(null);
         setPublishResult(null);
+
+        // 打开详情 Modal
+        setDetailModal(true);
+        setDetailLoading(true);
+        setGameDetail(null);
+        try {
+            const res = await getGameDetails(game.id);
+            setGameDetail(res.data);
+        } catch (err) {
+            message.error('获取游戏详情失败');
+        } finally {
+            setDetailLoading(false);
+        }
     };
 
     const handlePreview = async () => {
@@ -324,116 +343,152 @@ function CollectPage() {
                 </Affix>
             )}
 
-            {/* 选中游戏操作区 */}
-            {selectedGame && (
-                <Card
-                    title={
-                        <Space>
-                            <span>{selectedGame.name}</span>
-                            <Text type="secondary" style={{ fontSize: 12 }}>App ID: {selectedGame.id}</Text>
-                        </Space>
-                    }
-                    extra={
-                        <Space>
-                            <Button
-                                size="small"
-                                icon={<LinkOutlined />}
-                                href={`https://store.steampowered.com/app/${selectedGame.id}`}
-                                target="_blank"
-                            >
-                                Steam 页面
-                            </Button>
-                            <Button
-                                size="small"
-                                icon={<EyeOutlined />}
-                                onClick={handlePreview}
-                                loading={previewing}
-                            >
-                                预览
-                            </Button>
-                            <Button
-                                size="small"
-                                type="primary"
-                                icon={<SendOutlined />}
-                                onClick={handlePublish}
-                                loading={publishing}
-                            >
-                                发布到 WordPress
-                            </Button>
-                        </Space>
-                    }
-                    style={{ marginTop: 24 }}
-                >
-                    {/* 预览内容 */}
-                    {preview && (
-                        <div>
-                            {preview.seo && (
-                                <div style={{ marginBottom: 24 }}>
-                                    <Title level={5}>
-                                        <FileTextOutlined style={{ marginRight: 8 }} />
-                                        SEO 数据
-                                    </Title>
-                                    <Descriptions
-                                        column={1}
-                                        size="small"
-                                        items={[
-                                            { key: 'title', label: '标题', children: preview.seo.title },
-                                            { key: 'desc', label: '描述', children: preview.seo.description },
-                                            { key: 'kw', label: '关键词', children: preview.seo.keywords },
-                                        ]}
-                                    />
-                                </div>
-                            )}
+            {/* ===== 游戏详情 Modal ===== */}
+            <Modal
+                open={detailModal}
+                onCancel={() => setDetailModal(false)}
+                width={800}
+                title={gameDetail?.name || selectedGame?.name || '游戏详情'}
+                footer={
+                    <Space>
+                        <Button
+                            icon={<LinkOutlined />}
+                            href={`https://store.steampowered.com/app/${selectedGame?.id}`}
+                            target="_blank"
+                        >
+                            Steam 页面
+                        </Button>
+                        <Button
+                            icon={<EyeOutlined />}
+                            onClick={handlePreview}
+                            loading={previewing}
+                        >
+                            预览
+                        </Button>
+                        <Button
+                            type="primary"
+                            icon={<SendOutlined />}
+                            onClick={handlePublish}
+                            loading={publishing}
+                        >
+                            发布到 WordPress
+                        </Button>
+                    </Space>
+                }
+            >
+                {detailLoading ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                        <Spin size="large" tip="加载详情..." />
+                    </div>
+                ) : gameDetail ? (
+                    <div>
+                        {/* 截图轮播 */}
+                        {gameDetail.screenshots?.length > 0 && (
+                            <div style={{ marginBottom: 24 }}>
+                                <Carousel autoplay dotPosition="bottom" style={{ borderRadius: 8, overflow: 'hidden' }}>
+                                    {gameDetail.screenshots.slice(0, 8).map((s, i) => (
+                                        <div key={i}>
+                                            <img
+                                                src={s.path_full}
+                                                alt={`Screenshot ${i + 1}`}
+                                                style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }}
+                                            />
+                                        </div>
+                                    ))}
+                                </Carousel>
+                            </div>
+                        )}
 
-                            {preview.tags?.length > 0 && (
-                                <div style={{ marginBottom: 24 }}>
-                                    <Title level={5}>
-                                        <TagsOutlined style={{ marginRight: 8 }} />
-                                        标签
-                                    </Title>
-                                    <Space size={[4, 8]} wrap>
+                        {/* 基本信息 */}
+                        <Descriptions column={2} size="small" bordered style={{ marginBottom: 24 }}>
+                            <Descriptions.Item label={<><TeamOutlined /> 开发商</>}>
+                                {gameDetail.developers?.join(', ') || '-'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={<><TeamOutlined /> 发行商</>}>
+                                {gameDetail.publishers?.join(', ') || '-'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={<><CalendarOutlined /> 发行日期</>}>
+                                {gameDetail.release_date?.date || '-'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={<><InfoCircleOutlined /> 类型</>}>
+                                <Space size={[4, 4]} wrap>
+                                    {gameDetail.genres?.map((g) => (
+                                        <Tag key={g.id} color="blue" style={{ fontSize: 11 }}>{g.description}</Tag>
+                                    )) || '-'}
+                                </Space>
+                            </Descriptions.Item>
+                            {gameDetail.metacritic && (
+                                <Descriptions.Item label={<><StarOutlined /> Metacritic</>} span={2}>
+                                    <Space>
+                                        <Tag color={gameDetail.metacritic.score >= 75 ? 'green' : gameDetail.metacritic.score >= 50 ? 'orange' : 'red'}>
+                                            {gameDetail.metacritic.score} 分
+                                        </Tag>
+                                        {gameDetail.metacritic.url && (
+                                            <a href={gameDetail.metacritic.url} target="_blank" rel="noreferrer" style={{ color: '#818cf8', fontSize: 12 }}>
+                                                查看评测
+                                            </a>
+                                        )}
+                                    </Space>
+                                </Descriptions.Item>
+                            )}
+                            <Descriptions.Item label="支持平台" span={2}>
+                                <Space>
+                                    {gameDetail.platforms?.windows && <Tag>Windows</Tag>}
+                                    {gameDetail.platforms?.mac && <Tag>macOS</Tag>}
+                                    {gameDetail.platforms?.linux && <Tag>Linux</Tag>}
+                                </Space>
+                            </Descriptions.Item>
+                        </Descriptions>
+
+                        {/* 简介 */}
+                        {gameDetail.short_description && (
+                            <div style={{
+                                padding: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                                fontSize: 14, lineHeight: 1.8, marginBottom: 24,
+                            }}>
+                                {gameDetail.short_description}
+                            </div>
+                        )}
+
+                        {/* 预览结果 */}
+                        {preview && (
+                            <div style={{ marginBottom: 16 }}>
+                                <Title level={5}><FileTextOutlined style={{ marginRight: 8 }} />AI 预览结果</Title>
+                                {preview.seo && (
+                                    <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
+                                        <Descriptions.Item label="SEO 标题">{preview.seo.title}</Descriptions.Item>
+                                        <Descriptions.Item label="SEO 描述">{preview.seo.description}</Descriptions.Item>
+                                    </Descriptions>
+                                )}
+                                {preview.tags?.length > 0 && (
+                                    <Space size={[4, 8]} wrap style={{ marginBottom: 16 }}>
+                                        <TagsOutlined />
                                         {preview.tags.map((tag, i) => (
                                             <Tag key={i} color="purple">{tag}</Tag>
                                         ))}
                                     </Space>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                        )}
 
-                            {preview.rewritten_content && (
-                                <div>
-                                    <Title level={5}>
-                                        <ThunderboltOutlined style={{ marginRight: 8 }} />
-                                        AI 改写内容
-                                    </Title>
-                                    <div style={{
-                                        maxHeight: 400, overflowY: 'auto', padding: 16,
-                                        background: 'rgba(0,0,0,0.2)', borderRadius: 8,
-                                        fontSize: 14, lineHeight: 1.8,
-                                    }}>
-                                        {preview.rewritten_content}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* 发布结果 */}
-                    {publishResult && (
-                        <div style={{ marginTop: 16 }}>
-                            {publishResult.error ? (
-                                <Alert type="error" showIcon message="发布失败" description={publishResult.error} />
-                            ) : (
-                                <Alert
-                                    type="success"
-                                    showIcon
-                                    message="发布成功"
-                                    description={`动作: ${publishResult.action}${publishResult.post_id ? ` | 文章 ID: ${publishResult.post_id}` : ''}`}
-                                />
-                            )}
-                        </div>
-                    )}
-                </Card>
-            )}
+                        {/* 发布结果 */}
+                        {publishResult && (
+                            <div>
+                                {publishResult.error ? (
+                                    <Alert type="error" showIcon message="发布失败" description={publishResult.error} />
+                                ) : (
+                                    <Alert
+                                        type="success"
+                                        showIcon
+                                        message="发布成功"
+                                        description={`动作: ${publishResult.action}${publishResult.post_id ? ` | 文章 ID: ${publishResult.post_id}` : ''}`}
+                                    />
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ) : null}
+            </Modal>
         </div>
     );
 }

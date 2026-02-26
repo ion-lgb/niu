@@ -122,3 +122,33 @@ async def delete_record(session: AsyncSession, record_id: int) -> bool:
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount > 0
+
+
+async def daily_stats(session: AsyncSession, days: int = 7) -> list[dict]:
+    """近 N 天每日采集统计（按日期 + 状态分组）"""
+    import datetime
+    from sqlalchemy import func, cast, Date
+
+    since = datetime.datetime.now() - datetime.timedelta(days=days)
+    stmt = (
+        select(
+            cast(CollectRecord.created_at, Date).label("date"),
+            CollectRecord.status,
+            func.count(CollectRecord.id).label("count"),
+        )
+        .where(CollectRecord.created_at >= since)
+        .group_by("date", CollectRecord.status)
+        .order_by("date")
+    )
+    result = await session.execute(stmt)
+    return [
+        {"date": str(row.date), "status": row.status, "count": row.count}
+        for row in result.all()
+    ]
+
+
+async def recent_activity(session: AsyncSession, limit: int = 10) -> list[CollectRecord]:
+    """最近 N 条记录"""
+    stmt = select(CollectRecord).order_by(CollectRecord.updated_at.desc()).limit(limit)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
