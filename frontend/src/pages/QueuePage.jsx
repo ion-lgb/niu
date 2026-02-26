@@ -124,19 +124,21 @@ export default function QueuePage() {
             width: 100,
             align: 'center',
             render: (_, record) => (
-                <Space size={4}>
-                    {record.status === 'failed' && (
-                        <Button type="text" size="small" icon={<RedoOutlined />} title="重试" />
-                    )}
-                    <Popconfirm
-                        title="确定删除？"
-                        okText="删除"
-                        cancelText="取消"
-                        onConfirm={() => handleDelete(record.id)}
-                    >
-                        <Button type="text" size="small" danger icon={<DeleteOutlined />} title="删除" />
-                    </Popconfirm>
-                </Space>
+                <div onClick={(e) => e.stopPropagation()}>
+                    <Space size={4}>
+                        {record.status === 'failed' && (
+                            <Button type="text" size="small" icon={<RedoOutlined />} title="重试" />
+                        )}
+                        <Popconfirm
+                            title="确定删除？"
+                            okText="删除"
+                            cancelText="取消"
+                            onConfirm={() => handleDelete(record.id)}
+                        >
+                            <Button type="text" size="small" danger icon={<DeleteOutlined />} title="删除" />
+                        </Popconfirm>
+                    </Space>
+                </div>
             ),
         },
     ];
