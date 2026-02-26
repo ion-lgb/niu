@@ -24,3 +24,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# AI 工具
+.agent/
+.gemini/
