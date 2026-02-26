@@ -2,13 +2,15 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 import { ProLayout } from '@ant-design/pro-components';
 import {
   SearchOutlined, UnorderedListOutlined, SettingOutlined,
-  DashboardOutlined,
+  DashboardOutlined, SunOutlined, MoonOutlined,
 } from '@ant-design/icons';
+import { Switch, Space } from 'antd';
 import DashboardPage from './pages/DashboardPage';
 import CollectPage from './pages/CollectPage';
 import QueuePage from './pages/QueuePage';
 import SettingsPage from './pages/SettingsPage';
 import NotificationBell from './components/NotificationBell';
+import { useThemeMode } from './main';
 
 const route = {
   path: '/',
@@ -20,9 +22,26 @@ const route = {
   ],
 };
 
+function ThemeToggle() {
+  const { isDark, toggleTheme } = useThemeMode();
+  return (
+    <Space size={6} align="center">
+      <SunOutlined style={{ color: isDark ? '#64748b' : '#f59e0b', fontSize: 15 }} />
+      <Switch
+        size="small"
+        checked={isDark}
+        onChange={toggleTheme}
+        style={{ background: isDark ? '#6366f1' : '#cbd5e1' }}
+      />
+      <MoonOutlined style={{ color: isDark ? '#818cf8' : '#64748b', fontSize: 15 }} />
+    </Space>
+  );
+}
+
 function LayoutWrapper() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useThemeMode();
 
   return (
     <ProLayout
@@ -30,28 +49,35 @@ function LayoutWrapper() {
       logo={false}
       route={route}
       location={{ pathname: location.pathname }}
-      navTheme="realDark"
-      layout="side"
+      navTheme={isDark ? 'realDark' : 'light'}
+      layout="mix"
       fixSiderbar
+      fixedHeader
       contentWidth="Fluid"
       siderWidth={220}
       token={{
-        sider: {
+        sider: isDark ? {
           colorMenuBackground: '#111827',
           colorTextMenu: '#94a3b8',
           colorTextMenuSelected: '#818cf8',
           colorBgMenuItemSelected: 'rgba(99, 102, 241, 0.12)',
+        } : {
+          colorTextMenuSelected: '#6366f1',
+          colorBgMenuItemSelected: 'rgba(99, 102, 241, 0.08)',
         },
-        header: {
+        header: isDark ? {
           colorBgHeader: '#111827',
-        },
+        } : {},
       }}
       menuItemRender={(item, dom) => (
         <a onClick={() => navigate(item.path || '/')}>{dom}</a>
       )}
-      actionsRender={() => [
-        <NotificationBell key="bell" />,
-      ]}
+      headerContentRender={() => (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', gap: 16 }}>
+          <ThemeToggle />
+          <NotificationBell />
+        </div>
+      )}
       footerRender={() => (
         <div style={{ textAlign: 'center', padding: '12px 0', color: '#64748b', fontSize: 12 }}>
           v0.1.0 — Steam Collector

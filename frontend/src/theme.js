@@ -37,3 +37,18 @@ export const darkTheme = {
         },
     },
 };
+
+export const lightTheme = {
+    algorithm: theme.defaultAlgorithm,
+    token: {
+        colorPrimary: '#6366f1',
+        borderRadius: 10,
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+    },
+    components: {
+        Statistic: {
+            titleFontSize: 12,
+            contentFontSize: 24,
+        },
+    },
+};
