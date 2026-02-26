@@ -1,5 +1,5 @@
 # --- 构建阶段 ---
-FROM node:18-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 COPY package.json package-lock.json* ./
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # --- 运行阶段 ---
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 RUN npm install -g serve
