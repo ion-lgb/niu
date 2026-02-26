@@ -158,22 +158,45 @@ cd backend
 cp .env.example .env
 # 编辑 .env 填写 SC_AUTH_PASSWORD、SC_JWT_SECRET、AI Key、WP 配置等
 
-# 2. 一键启动（backend + frontend + redis）
+# 2. 启动后端 + Redis
 cd ..
 docker compose up -d
 
-# 3. 查看日志
-docker compose logs -f backend
+# 3. 构建前端静态文件
+cd frontend
+npm install && npm run build
+# 构建产物在 frontend/dist/ 目录
 ```
 
-访问 **http://localhost** 即可使用（生产环境建议在前面加 HTTPS 反代）。
+然后在你的 Nginx 中配置：
 
-```bash
-# 停止
-docker compose down
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
 
-# 重新构建（代码更新后）
-docker compose up -d --build
+    # 前端静态文件
+    root /path/to/niu/frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 反向代理
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE 支持
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+    }
+}
 ```
 
 ## 🔧 采集流程
