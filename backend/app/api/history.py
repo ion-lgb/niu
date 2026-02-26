@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import get_current_user
 from app.db.engine import get_session
 from app.db import crud
 
@@ -19,6 +20,7 @@ async def list_records(
     limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_session),
+    _user: str = Depends(get_current_user),
 ):
     """列出采集记录"""
     records = await crud.list_records(session, status=status, limit=limit, offset=offset)
@@ -44,7 +46,7 @@ async def list_records(
 
 
 @router.get("/records/stats")
-async def record_stats(session: AsyncSession = Depends(get_session)):
+async def record_stats(session: AsyncSession = Depends(get_session), _user: str = Depends(get_current_user)):
     """采集统计"""
     total = await crud.count_records(session)
     completed = await crud.count_records(session, status="completed")
@@ -62,7 +64,7 @@ async def record_stats(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/records/{record_id}")
-async def get_record(record_id: int, session: AsyncSession = Depends(get_session)):
+async def get_record(record_id: int, session: AsyncSession = Depends(get_session), _user: str = Depends(get_current_user)):
     """获取单条记录详情"""
     record = await crud.get_record(session, record_id)
     if record is None:
@@ -87,7 +89,7 @@ async def get_record(record_id: int, session: AsyncSession = Depends(get_session
 
 
 @router.delete("/records/{record_id}")
-async def delete_record(record_id: int, session: AsyncSession = Depends(get_session)):
+async def delete_record(record_id: int, session: AsyncSession = Depends(get_session), _user: str = Depends(get_current_user)):
     """删除采集记录"""
     deleted = await crud.delete_record(session, record_id)
     if not deleted:

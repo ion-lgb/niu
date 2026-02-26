@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.api.auth import get_current_user
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ def _reload_settings(env: dict):
 
 
 @router.get("", response_model=SettingsResponse)
-async def get_settings():
+async def get_settings(_user: str = Depends(get_current_user)):
     return SettingsResponse(
         ai_provider=settings.ai_provider,
         ai_model=settings.ai_model,
@@ -125,7 +126,7 @@ def _mask_key(value: str) -> str:
 
 
 @router.put("")
-async def update_settings(req: UpdateSettingsRequest):
+async def update_settings(req: UpdateSettingsRequest, _user: str = Depends(get_current_user)):
     """更新设置并持久化到 .env"""
     env = _read_env()
     updated = []
@@ -145,7 +146,7 @@ async def update_settings(req: UpdateSettingsRequest):
 
 
 @router.post("/test-wp")
-async def test_wordpress():
+async def test_wordpress(_user: str = Depends(get_current_user)):
     """测试 WordPress 连接"""
     if not settings.wp_url:
         return {"ok": False, "error": "WordPress URL 未配置"}
@@ -162,7 +163,7 @@ async def test_wordpress():
 
 
 @router.post("/test-ai")
-async def test_ai():
+async def test_ai(_user: str = Depends(get_current_user)):
     """测试 AI 连接"""
     if not settings.ai_api_key:
         return {"ok": False, "error": "AI API Key 未配置"}

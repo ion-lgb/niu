@@ -1,16 +1,19 @@
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ProLayout } from '@ant-design/pro-components';
 import {
   SearchOutlined, UnorderedListOutlined, SettingOutlined,
-  DashboardOutlined, SunOutlined, MoonOutlined,
+  DashboardOutlined, SunOutlined, MoonOutlined, LogoutOutlined,
 } from '@ant-design/icons';
-import { Switch, Space } from 'antd';
+import { Switch, Space, Button, Tooltip } from 'antd';
 import DashboardPage from './pages/DashboardPage';
 import CollectPage from './pages/CollectPage';
 import QueuePage from './pages/QueuePage';
 import SettingsPage from './pages/SettingsPage';
+import LoginPage from './pages/LoginPage';
 import NotificationBell from './components/NotificationBell';
 import { useThemeMode } from './main';
+import { isAuthenticated, logout } from './auth';
 
 const route = {
   path: '/',
@@ -76,6 +79,14 @@ function LayoutWrapper() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', gap: 16 }}>
           <ThemeToggle />
           <NotificationBell />
+          <Tooltip title="退出登录">
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              onClick={logout}
+              style={{ color: '#94a3b8' }}
+            />
+          </Tooltip>
         </div>
       )}
       footerRender={() => (
@@ -95,9 +106,25 @@ function LayoutWrapper() {
 }
 
 function App() {
+  const [authed, setAuthed] = useState(isAuthenticated());
+
+  if (!authed) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage onLoginSuccess={() => setAuthed(true)} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
-      <LayoutWrapper />
+      <Routes>
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<LayoutWrapper />} />
+      </Routes>
     </BrowserRouter>
   );
 }

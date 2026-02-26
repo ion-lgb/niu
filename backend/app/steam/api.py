@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.auth import get_current_user
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ async def get_app_details(app_id: int) -> dict | None:
 # ---- 路由 ----
 
 @router.get("/search")
-async def api_search(q: str = Query(..., min_length=1), limit: int = Query(10, le=25)):
+async def api_search(q: str = Query(..., min_length=1), limit: int = Query(10, le=25), _user: str = Depends(get_current_user)):
     """搜索 Steam 游戏"""
     try:
         items = await search_games(q, page_size=limit)
@@ -62,7 +63,7 @@ async def api_search(q: str = Query(..., min_length=1), limit: int = Query(10, l
 
 
 @router.get("/app/{app_id}")
-async def api_app_details(app_id: int):
+async def api_app_details(app_id: int, _user: str = Depends(get_current_user)):
     """获取 Steam 游戏详情"""
     try:
         data = await get_app_details(app_id)

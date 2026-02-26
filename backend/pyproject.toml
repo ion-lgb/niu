@@ -16,6 +16,8 @@ dependencies = [
     "greenlet>=3.0.0",
     "python-multipart>=0.0.6",
     "openpyxl>=3.1.0",
+    "PyJWT>=2.8.0",
+    "bcrypt>=4.0.0",
 ]
 
 [project.optional-dependencies]

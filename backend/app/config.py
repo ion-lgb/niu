@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     app_title: str = "Steam Collector"
     debug: bool = False
 
+    # --- 认证 ---
+    auth_username: str = "admin"
+    auth_password: str = ""          # SC_AUTH_PASSWORD
+    jwt_secret: str = ""             # SC_JWT_SECRET
+    jwt_expire_hours: int = 24
+
+    # --- CORS ---
+    cors_origins: str = "http://localhost:3000"  # SC_CORS_ORIGINS，逗号分隔
+
     # --- AI ---
     ai_provider: str = "deepseek"
     ai_model: str = "deepseek-chat"

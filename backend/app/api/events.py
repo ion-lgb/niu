@@ -7,8 +7,10 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from starlette.responses import StreamingResponse
+
+from app.api.auth import get_current_user_from_query
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -43,7 +45,7 @@ def unsubscribe(q: asyncio.Queue):
 # ---- SSE 端点 ----
 
 @router.get("/stream")
-async def event_stream():
+async def event_stream(_user: str = Depends(get_current_user_from_query)):
     """SSE 事件流"""
     q = subscribe()
 

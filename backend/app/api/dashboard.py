@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import get_current_user
 from app.db.engine import get_session
 from app.db import crud
 
@@ -12,14 +13,14 @@ router = APIRouter()
 
 
 @router.get("/trend")
-async def dashboard_trend(days: int = 7, session: AsyncSession = Depends(get_session)):
+async def dashboard_trend(days: int = 7, session: AsyncSession = Depends(get_session), _user: str = Depends(get_current_user)):
     """近 N 天每日采集趋势"""
     rows = await crud.daily_stats(session, days=days)
     return {"items": rows}
 
 
 @router.get("/activity")
-async def dashboard_activity(limit: int = 10, session: AsyncSession = Depends(get_session)):
+async def dashboard_activity(limit: int = 10, session: AsyncSession = Depends(get_session), _user: str = Depends(get_current_user)):
     """最近活动记录"""
     records = await crud.recent_activity(session, limit=limit)
     return {

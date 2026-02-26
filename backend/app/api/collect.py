@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.api.auth import get_current_user
 from app.core import GameContext, Pipeline
 from app.steam.api import get_app_details
 from app.db.engine import async_session
@@ -58,7 +59,7 @@ def _build_pipeline(req: CollectRequest) -> Pipeline:
 
 
 @router.post("/collect", response_model=CollectResponse)
-async def collect_game(req: CollectRequest):
+async def collect_game(req: CollectRequest, _user: str = Depends(get_current_user)):
     """采集单个游戏（含数据库记录跟踪）"""
 
     # 创建数据库记录
@@ -116,7 +117,7 @@ async def collect_game(req: CollectRequest):
 
 
 @router.post("/collect/preview")
-async def preview_game(req: CollectRequest):
+async def preview_game(req: CollectRequest, _user: str = Depends(get_current_user)):
     """预览采集结果（不发布）"""
     # 只执行到内容构建，不发布
     steam_data = await get_app_details(req.app_id)

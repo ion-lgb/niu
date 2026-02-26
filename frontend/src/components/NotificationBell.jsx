@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Badge, Popover, List, Typography, Space, Tag, Button, notification } from 'antd';
 import { BellOutlined, CheckCircleOutlined, CloseCircleOutlined, ClearOutlined } from '@ant-design/icons';
+import { getToken } from '../auth';
 
 const { Text } = Typography;
 
@@ -11,7 +12,9 @@ export default function NotificationBell() {
     const eventSourceRef = useRef(null);
 
     useEffect(() => {
-        const es = new EventSource('/api/events/stream');
+        const token = getToken();
+        const url = token ? `/api/events/stream?token=${encodeURIComponent(token)}` : '/api/events/stream';
+        const es = new EventSource(url);
         eventSourceRef.current = es;
 
         es.onmessage = (e) => {
