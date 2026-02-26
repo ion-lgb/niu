@@ -150,6 +150,32 @@ arq app.queue.manager.WorkerSettings
 
 > 没有 Redis 也能正常工作，系统会自动降级为同步执行。
 
+### 5. Docker 部署（推荐）
+
+```bash
+# 1. 配置环境变量
+cd backend
+cp .env.example .env
+# 编辑 .env 填写 SC_AUTH_PASSWORD、SC_JWT_SECRET、AI Key、WP 配置等
+
+# 2. 一键启动（backend + frontend + redis）
+cd ..
+docker compose up -d
+
+# 3. 查看日志
+docker compose logs -f backend
+```
+
+访问 **http://localhost** 即可使用（生产环境建议在前面加 HTTPS 反代）。
+
+```bash
+# 停止
+docker compose down
+
+# 重新构建（代码更新后）
+docker compose up -d --build
+```
+
 ## 🔧 采集流程
 
 ```
@@ -191,6 +217,9 @@ arq app.queue.manager.WorkerSettings
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
+| `SC_AUTH_PASSWORD` | — | 登录密码（**必填**） |
+| `SC_JWT_SECRET` | — | JWT 签名密钥（**必填**，≥32 字符） |
+| `SC_CORS_ORIGINS` | `http://localhost:3000` | 允许的域名（逗号分隔） |
 | `SC_AI_PROVIDER` | `deepseek` | AI 服务商 |
 | `SC_AI_MODEL` | `deepseek-chat` | 模型名称 |
 | `SC_AI_API_KEY` | — | API 密钥（**必填**） |
