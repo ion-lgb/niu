@@ -1,5 +1,5 @@
 services:
-  # 后端 API
+  # 后端 API（端口 8000）
   backend:
     build: ./backend
     restart: unless-stopped
@@ -10,9 +10,15 @@ services:
       - "8000:8000"
     volumes:
       - db_data:/app
-
     depends_on:
       - redis
+
+  # 前端（端口 3000）
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
 
   # Redis (异步任务队列)
   redis:

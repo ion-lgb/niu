@@ -158,29 +158,26 @@ cd backend
 cp .env.example .env
 # 编辑 .env 填写 SC_AUTH_PASSWORD、SC_JWT_SECRET、AI Key、WP 配置等
 
-# 2. 启动后端 + Redis
+# 2. 一键启动（backend + frontend + redis）
 cd ..
 docker compose up -d
 
-# 3. 构建前端静态文件
-cd frontend
-npm install && npm run build
-# 构建产物在 frontend/dist/ 目录
+# 3. 查看日志
+docker compose logs -f
 ```
 
-然后在你的 Nginx 中配置：
+启动后：**后端** 运行在 `8000` 端口，**前端** 运行在 `3000` 端口。
+
+在你的 Nginx 中配置转发：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
 
-    # 前端静态文件
-    root /path/to/niu/frontend/dist;
-    index index.html;
-
+    # 前端
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://127.0.0.1:3000;
     }
 
     # API 反向代理
