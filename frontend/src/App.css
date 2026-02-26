@@ -1,0 +1,33 @@
+/* Minimal global overrides for antd dark theme */
+body {
+    margin: 0;
+    background: #0a0e17;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111827;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* ProLayout sidebar footer */
+.ant-pro-sider-footer {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #64748b;
+}
