@@ -215,3 +215,13 @@ arq app.queue.manager.WorkerSettings
 **前端**：React · Vite · React Router · Axios · Lucide Icons
 
 **外部服务**：Steam Web API · WordPress REST API · DeepSeek/OpenAI · Redis
+
+---
+
+## 📋 版本
+
+**v1.0.0** — 2026.02.26
+
+## 👥 作者
+
+**ion** · **Claude Opus** · **Gemini**

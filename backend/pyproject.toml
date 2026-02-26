@@ -1,6 +1,6 @@
 [project]
 name = "steam-collector"
-version = "0.1.0"
+version = "1.0.0"
 description = "Steam游戏数据采集发布系统"
 requires-python = ">=3.9"
 dependencies = [

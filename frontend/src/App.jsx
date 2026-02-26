@@ -91,7 +91,7 @@ function LayoutWrapper() {
       )}
       footerRender={() => (
         <div style={{ textAlign: 'center', padding: '12px 0', color: '#64748b', fontSize: 12 }}>
-          v0.1.0 — Steam Collector
+          v1.0.0 — Steam Collector
         </div>
       )}
     >
