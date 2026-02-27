@@ -112,15 +112,15 @@ def _build_pipeline_from_options(options: dict):
 
 
 async def enqueue_collect(app_id: int, options: Optional[dict] = None) -> int:
-    """将采集任务写入数据库队列，返回 record_id"""
+    """将采集任务写入数据库队列（waiting 状态，需手动确认后才执行）"""
     from app.db.engine import async_session
     from app.db import crud
 
     async with async_session() as session:
-        record = await crud.create_record(session, app_id=app_id, options=options)
+        record = await crud.create_record(session, app_id=app_id, options=options, status="waiting")
         record_id = record.id
 
-    logger.info(f"[队列] 已入队 app_id={app_id} record_id={record_id}")
+    logger.info(f"[队列] 已入队 app_id={app_id} record_id={record_id} (waiting)")
     return record_id
 
 

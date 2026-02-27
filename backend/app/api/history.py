@@ -53,6 +53,7 @@ async def record_stats(session: AsyncSession = Depends(get_session), _user: str 
     running = await crud.count_records(session, status="running")
     failed = await crud.count_records(session, status="failed")
     pending = await crud.count_records(session, status="pending")
+    waiting = await crud.count_records(session, status="waiting")
 
     return {
         "total": total,
@@ -60,6 +61,7 @@ async def record_stats(session: AsyncSession = Depends(get_session), _user: str 
         "running": running,
         "failed": failed,
         "pending": pending,
+        "waiting": waiting,
     }
 
 

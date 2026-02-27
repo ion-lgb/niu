@@ -47,6 +47,8 @@ export const getRecord = (id) => api.get(`/history/records/${id}`);
 // Queue API
 export const enqueueGame = (data) => api.post('/queue/enqueue', data);
 export const enqueueBatch = (data) => api.post('/queue/enqueue/batch', data);
+export const startQueueTask = (record_id) => api.post('/queue/start', { record_id });
+export const startAllQueueTasks = () => api.post('/queue/start/all');
 
 // Settings API
 export const getSettings = () => api.get('/settings');

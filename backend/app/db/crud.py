@@ -15,18 +15,43 @@ async def create_record(
     app_id: int,
     game_name: str = "",
     options: Optional[dict] = None,
+    status: str = "pending",
 ) -> CollectRecord:
     """创建新的采集记录"""
     record = CollectRecord(
         app_id=app_id,
         game_name=game_name,
-        status="pending",
+        status=status,
         options=options,
     )
     session.add(record)
     await session.commit()
     await session.refresh(record)
     return record
+
+
+async def start_record(session: AsyncSession, record_id: int) -> bool:
+    """将 waiting 任务改为 pending（允许 Worker 处理）"""
+    stmt = (
+        update(CollectRecord)
+        .where(CollectRecord.id == record_id, CollectRecord.status == "waiting")
+        .values(status="pending")
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
+
+
+async def start_all_waiting(session: AsyncSession) -> int:
+    """将所有 waiting 任务改为 pending"""
+    stmt = (
+        update(CollectRecord)
+        .where(CollectRecord.status == "waiting")
+        .values(status="pending")
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount
 
 
 async def update_record_status(

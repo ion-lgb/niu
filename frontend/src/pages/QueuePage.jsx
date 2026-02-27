@@ -5,8 +5,9 @@ import {
     ReloadOutlined, DeleteOutlined, RedoOutlined,
     CheckCircleOutlined, ClockCircleOutlined, PlayCircleOutlined,
     CloseCircleOutlined, AppstoreOutlined, TagsOutlined,
+    PauseCircleOutlined, CaretRightOutlined, ThunderboltOutlined,
 } from '@ant-design/icons';
-import { getRecordStats, getRecords, getRecord, deleteRecord } from '../api';
+import { getRecordStats, getRecords, getRecord, deleteRecord, startQueueTask, startAllQueueTasks } from '../api';
 
 const { Text } = Typography;
 
@@ -14,7 +15,8 @@ const statusConfig = {
     completed: { text: '已完成', color: 'success', icon: <CheckCircleOutlined /> },
     running: { text: '进行中', color: 'processing', icon: <PlayCircleOutlined /> },
     failed: { text: '失败', color: 'error', icon: <CloseCircleOutlined /> },
-    pending: { text: '等待中', color: 'default', icon: <ClockCircleOutlined /> },
+    pending: { text: '排队中', color: 'warning', icon: <ClockCircleOutlined /> },
+    waiting: { text: '待确认', color: 'default', icon: <PauseCircleOutlined /> },
 };
 
 const actionMap = {
@@ -24,7 +26,7 @@ const actionMap = {
 
 export default function QueuePage() {
     const { message } = App.useApp();
-    const [stats, setStats] = useState({ total: 0, completed: 0, running: 0, failed: 0, pending: 0 });
+    const [stats, setStats] = useState({ total: 0, completed: 0, running: 0, failed: 0, pending: 0, waiting: 0 });
     const [filter, setFilter] = useState('all');
     const actionRef = useRef();
 
@@ -80,6 +82,28 @@ export default function QueuePage() {
         }
     };
 
+    const handleStart = async (recordId) => {
+        try {
+            await startQueueTask(recordId);
+            message.success('已开始采集');
+            actionRef.current?.reload();
+            fetchStats();
+        } catch (err) {
+            message.error('开始采集失败: ' + (err.response?.data?.detail || err.message));
+        }
+    };
+
+    const handleStartAll = async () => {
+        try {
+            const res = await startAllQueueTasks();
+            message.success(`已启动 ${res.data.started} 个任务`);
+            actionRef.current?.reload();
+            fetchStats();
+        } catch (err) {
+            message.error('批量启动失败');
+        }
+    };
+
     const columns = [
         {
             title: 'App ID',
@@ -122,22 +146,35 @@ export default function QueuePage() {
         },
         {
             title: '操作',
-            width: 100,
+            width: 140,
             align: 'center',
             render: (_, record) => (
                 <div onClick={(e) => e.stopPropagation()}>
                     <Space size={4}>
+                        {record.status === 'waiting' && (
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<CaretRightOutlined />}
+                                title="开始采集"
+                                onClick={() => handleStart(record.id)}
+                            >
+                                开始
+                            </Button>
+                        )}
                         {record.status === 'failed' && (
                             <Button type="text" size="small" icon={<RedoOutlined />} title="重试" />
                         )}
-                        <Popconfirm
-                            title="确定删除？"
-                            okText="删除"
-                            cancelText="取消"
-                            onConfirm={() => handleDelete(record.id)}
-                        >
-                            <Button type="text" size="small" danger icon={<DeleteOutlined />} title="删除" />
-                        </Popconfirm>
+                        {(record.status === 'waiting' || record.status === 'failed') && (
+                            <Popconfirm
+                                title="确定删除？"
+                                okText="删除"
+                                cancelText="取消"
+                                onConfirm={() => handleDelete(record.id)}
+                            >
+                                <Button type="text" size="small" danger icon={<DeleteOutlined />} title="删除" />
+                            </Popconfirm>
+                        )}
                     </Space>
                 </div>
             ),
@@ -146,17 +183,20 @@ export default function QueuePage() {
 
     const statItems = [
         { key: 'total', title: '总任务', icon: <AppstoreOutlined />, color: '#6366f1' },
+        { key: 'waiting', title: '待确认', icon: <PauseCircleOutlined />, color: '#8b5cf6' },
+        { key: 'pending', title: '排队中', icon: <ClockCircleOutlined />, color: '#f59e0b' },
+        { key: 'running', title: '进行中', icon: <PlayCircleOutlined />, color: '#3b82f6' },
         { key: 'completed', title: '已完成', icon: <CheckCircleOutlined />, color: '#22c55e' },
-        { key: 'running', title: '进行中', icon: <PlayCircleOutlined />, color: '#f59e0b' },
         { key: 'failed', title: '失败', icon: <CloseCircleOutlined />, color: '#ef4444' },
     ];
 
     const tabItems = [
         { key: 'all', tab: `全部 ${stats.total}` },
-        { key: 'completed', tab: `已完成 ${stats.completed}` },
+        { key: 'waiting', tab: `待确认 ${stats.waiting || 0}` },
+        { key: 'pending', tab: `排队中 ${stats.pending}` },
         { key: 'running', tab: `进行中 ${stats.running}` },
+        { key: 'completed', tab: `已完成 ${stats.completed}` },
         { key: 'failed', tab: `失败 ${stats.failed}` },
-        { key: 'pending', tab: `等待中 ${stats.pending}` },
     ];
 
     return (
@@ -168,7 +208,7 @@ export default function QueuePage() {
                         key={item.key}
                         statistic={{
                             title: item.title,
-                            value: stats[item.key],
+                            value: stats[item.key] || 0,
                             icon: (
                                 <div style={{
                                     width: 48, height: 48, borderRadius: 12,
@@ -198,7 +238,7 @@ export default function QueuePage() {
                 rowKey="id"
                 search={false}
                 dateFormatter="string"
-                headerTitle="采集记录"
+                headerTitle="采集队列"
                 cardBordered
                 onRow={(record) => ({
                     onClick: () => openDetail(record.id),
@@ -218,6 +258,19 @@ export default function QueuePage() {
                 toolBarRender={() => [
                     (stats.running > 0 || stats.pending > 0) && (
                         <Tag key="auto" color="processing">自动刷新中</Tag>
+                    ),
+                    (stats.waiting || 0) > 0 && (
+                        <Popconfirm
+                            key="startAll"
+                            title={`确定开始全部 ${stats.waiting} 个待确认任务？`}
+                            okText="全部开始"
+                            cancelText="取消"
+                            onConfirm={handleStartAll}
+                        >
+                            <Button type="primary" icon={<ThunderboltOutlined />}>
+                                全部开始 ({stats.waiting})
+                            </Button>
+                        </Popconfirm>
                     ),
                     <Button
                         key="refresh"
