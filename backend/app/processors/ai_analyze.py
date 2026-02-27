@@ -24,14 +24,31 @@ class AIAnalyzeProcessor:
         result = await self.analyzer.analyze(ctx.steam_data, existing_categories)
         category_name = result["category"]
 
-        # 匹配或创建 WordPress 分类
+        # 匹配 WordPress 已有分类（精确匹配 → 模糊匹配）
         if category_name in cat_name_to_id:
             ctx.category_id = cat_name_to_id[category_name]
         else:
-            # 分类不存在，自动创建
-            new_cat = await wp.create_category(category_name)
-            ctx.category_id = new_cat["id"]
-            logger.info(f"[AIAnalyze] 自动创建分类: {category_name} → ID={ctx.category_id}")
+            # 模糊匹配：子串包含关系
+            matched = None
+            for wp_name, wp_id in cat_name_to_id.items():
+                if wp_name in category_name or category_name in wp_name:
+                    matched = (wp_name, wp_id)
+                    break
+            if matched:
+                ctx.category_id = matched[1]
+                logger.info(f"[AIAnalyze] 模糊匹配分类: '{category_name}' → '{matched[0]}'(ID={matched[1]})")
+            else:
+                # 选第一个非"未分类"的分类
+                fallback = next(
+                    ((n, i) for n, i in cat_name_to_id.items() if n != "未分类" and n.lower() != "uncategorized"),
+                    None,
+                )
+                if fallback:
+                    ctx.category_id = fallback[1]
+                    logger.warning(f"[AIAnalyze] 分类 '{category_name}' 无匹配，使用 '{fallback[0]}'")
+                else:
+                    ctx.category_id = None
+                    logger.warning(f"[AIAnalyze] 分类 '{category_name}' 无匹配，无可用分类")
 
         ctx.tags = result["tags"]
         ctx.seo = result["seo"]
