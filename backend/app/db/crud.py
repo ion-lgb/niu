@@ -127,15 +127,16 @@ async def delete_record(session: AsyncSession, record_id: int) -> bool:
 async def daily_stats(session: AsyncSession, days: int = 7) -> list[dict]:
     """近 N 天每日采集统计（按日期 + 状态分组）"""
     import datetime
-    from sqlalchemy import func, cast, Date
+    from sqlalchemy import func
 
     since = datetime.datetime.now() - datetime.timedelta(days=days)
     stmt = (
         select(
-            cast(CollectRecord.created_at, Date).label("date"),
+            func.date(CollectRecord.created_at).label("date"),
             CollectRecord.status,
             func.count(CollectRecord.id).label("count"),
         )
+        .where(CollectRecord.created_at.isnot(None))
         .where(CollectRecord.created_at >= since)
         .group_by("date", CollectRecord.status)
         .order_by("date")
