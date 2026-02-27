@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
     Input, Button, Card, Row, Col, Space, Tag, Typography, Alert, Spin, Empty,
-    Select, Checkbox, Collapse, Descriptions, message, Affix, Modal, Carousel,
+    Select, Checkbox, Collapse, Descriptions, Affix, Modal, Carousel, App,
 } from 'antd';
 import {
     SearchOutlined, EyeOutlined, SendOutlined, SettingOutlined,
@@ -14,6 +14,7 @@ import { searchGames, previewGame, collectGame, enqueueBatch, getGameDetails } f
 const { Text, Title } = Typography;
 
 function CollectPage() {
+    const { message } = App.useApp();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
