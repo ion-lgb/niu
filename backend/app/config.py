@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": ["data/.env", ".env"],  # Docker 持久化优先，本地开发回退
         "env_prefix": "SC_",
+        "extra": "ignore",  # 忽略 .env 中未定义的变量（如旧配置）
     }
 
 
