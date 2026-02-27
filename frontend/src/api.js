@@ -3,7 +3,7 @@ import { getToken, removeToken } from './auth';
 
 const api = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 300000,  // 5分钟，采集流程耗时较长
   headers: { 'Content-Type': 'application/json' },
 });
 
