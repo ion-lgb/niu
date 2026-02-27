@@ -14,11 +14,12 @@ const statusConfig = {
     completed: { text: '已完成', color: '#22c55e', icon: <CheckCircleOutlined /> },
     running: { text: '进行中', color: '#f59e0b', icon: <PlayCircleOutlined /> },
     failed: { text: '失败', color: '#ef4444', icon: <CloseCircleOutlined /> },
-    pending: { text: '等待中', color: '#94a3b8', icon: <ClockCircleOutlined /> },
+    pending: { text: '排队中', color: '#94a3b8', icon: <ClockCircleOutlined /> },
+    waiting: { text: '待确认', color: '#8b5cf6', icon: <ClockCircleOutlined /> },
 };
 
 export default function DashboardPage() {
-    const [stats, setStats] = useState({ total: 0, completed: 0, running: 0, failed: 0, pending: 0 });
+    const [stats, setStats] = useState({ total: 0, completed: 0, running: 0, failed: 0, pending: 0, waiting: 0 });
     const [trend, setTrend] = useState([]);
     const [activity, setActivity] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -44,6 +45,7 @@ export default function DashboardPage() {
 
     const statItems = [
         { key: 'total', title: '总任务', icon: <AppstoreOutlined />, color: '#6366f1' },
+        { key: 'waiting', title: '待确认', icon: <ClockCircleOutlined />, color: '#8b5cf6' },
         { key: 'completed', title: '已完成', icon: <CheckCircleOutlined />, color: '#22c55e' },
         { key: 'running', title: '进行中', icon: <PlayCircleOutlined />, color: '#f59e0b' },
         { key: 'failed', title: '失败', icon: <CloseCircleOutlined />, color: '#ef4444' },
@@ -54,11 +56,12 @@ export default function DashboardPage() {
         { type: '已完成', value: stats.completed },
         { type: '进行中', value: stats.running },
         { type: '失败', value: stats.failed },
-        { type: '等待中', value: stats.pending },
+        { type: '排队中', value: stats.pending },
+        { type: '待确认', value: stats.waiting },
     ].filter(d => d.value > 0);
 
     // 趋势图状态名映射
-    const statusNameMap = { completed: '已完成', running: '进行中', failed: '失败', pending: '等待中' };
+    const statusNameMap = { completed: '已完成', running: '进行中', failed: '失败', pending: '排队中', waiting: '待确认' };
     const trendData = trend.map(d => ({
         ...d,
         statusName: statusNameMap[d.status] || d.status,
@@ -111,7 +114,7 @@ export default function DashboardPage() {
                                 xField="date"
                                 yField="count"
                                 seriesField="statusName"
-                                color={['#22c55e', '#f59e0b', '#ef4444', '#94a3b8']}
+                                color={['#22c55e', '#f59e0b', '#ef4444', '#94a3b8', '#8b5cf6']}
                                 smooth
                                 point={{ size: 4 }}
                                 height={280}
@@ -134,7 +137,7 @@ export default function DashboardPage() {
                                 data={pieData}
                                 angleField="value"
                                 colorField="type"
-                                color={['#22c55e', '#f59e0b', '#ef4444', '#94a3b8']}
+                                color={['#22c55e', '#f59e0b', '#ef4444', '#94a3b8', '#8b5cf6']}
                                 radius={0.85}
                                 innerRadius={0.6}
                                 height={280}

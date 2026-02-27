@@ -22,7 +22,7 @@ class CollectRecord(Base):
 
     # 采集结果
     action: Mapped[str] = mapped_column(String(20), default="create", comment="create/update/skip")
-    status: Mapped[str] = mapped_column(String(20), default="pending", comment="pending/running/completed/failed")
+    status: Mapped[str] = mapped_column(String(20), default="pending", comment="waiting/pending/running/completed/failed")
     post_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="WordPress 文章 ID")
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="错误信息")
 
