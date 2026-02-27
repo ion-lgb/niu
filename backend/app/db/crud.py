@@ -124,6 +124,26 @@ async def delete_record(session: AsyncSession, record_id: int) -> bool:
     return result.rowcount > 0
 
 
+async def get_next_pending(session: AsyncSession) -> Optional[CollectRecord]:
+    """获取下一个待处理任务（按创建时间排序）"""
+    result = await session.execute(
+        select(CollectRecord)
+        .where(CollectRecord.status == "pending")
+        .order_by(CollectRecord.created_at.asc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_record_game_name(
+    session: AsyncSession, record_id: int, game_name: str
+) -> None:
+    """更新记录的游戏名称"""
+    stmt = update(CollectRecord).where(CollectRecord.id == record_id).values(game_name=game_name)
+    await session.execute(stmt)
+    await session.commit()
+
+
 async def daily_stats(session: AsyncSession, days: int = 7) -> list[dict]:
     """近 N 天每日采集统计（按日期 + 状态分组）"""
     import datetime

@@ -3,15 +3,11 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    environment:
-      - SC_REDIS_URL=redis://redis:6379
     ports:
       - "8000:8000"
     volumes:
       - db_data:/app/data
       - backend_env:/app/env
-    depends_on:
-      - redis
 
   # 前端（端口 3000）
   frontend:
@@ -20,15 +16,6 @@ services:
     ports:
       - "3000:3000"
 
-  # Redis (异步任务队列)
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-
 volumes:
   db_data:
   backend_env:
-  redis_data:
-

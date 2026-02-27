@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     steam_country_code: str = "CN"
     steam_language: str = "schinese"
 
-    # --- Redis (ARQ) ---
-    redis_url: str = "redis://localhost:6379"
-
     # --- Database ---
     database_url: str = "sqlite+aiosqlite:///./data/collector.db"
 

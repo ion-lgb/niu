@@ -1,42 +1,38 @@
-"""ARQ 任务队列管理
+"""数据库驱动的任务队列
 
-提供两种运行模式：
-1. 有 Redis 时：使用 ARQ 异步任务队列
-2. 无 Redis 时：降级为同步执行（开发环境友好）
+使用 SQLite CollectRecord 表作为队列存储，后台 asyncio 协程作为消费者。
+无需 Redis / ARQ，零额外开销。
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional, List
 
-from app.config import settings
-
 logger = logging.getLogger(__name__)
 
+# 后台 Worker 单例
+_worker_task: Optional[asyncio.Task] = None
 
-async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = None):
-    """ARQ 任务函数 - 采集单个游戏
 
-    ctx 由 ARQ 自动注入，包含 Redis 连接等信息
-    """
+async def collect_game_task(app_id: int, options: Optional[dict] = None, record_id: Optional[int] = None):
+    """执行单个游戏采集（被后台 Worker 调用）"""
     from app.core import GameContext, Pipeline
     from app.db.engine import async_session
     from app.db import crud
 
-    logger.info(f"[队列] 开始采集 app_id={app_id}")
-
-    # 创建数据库记录
-    async with async_session() as session:
-        record = await crud.create_record(session, app_id=app_id, options=options)
-        record_id = record.id
+    # 如果没有传入 record_id，创建记录
+    if record_id is None:
+        async with async_session() as session:
+            record = await crud.create_record(session, app_id=app_id, options=options)
+            record_id = record.id
 
     # 更新为 running
     async with async_session() as session:
         await crud.update_record_status(session, record_id, status="running")
 
     try:
-        # 构建 Pipeline
         game_ctx = GameContext(app_id=app_id)
         pipeline = _build_pipeline_from_options(options or {})
         game_ctx = await pipeline.run(game_ctx)
@@ -54,9 +50,16 @@ async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = No
                 category_id=game_ctx.category_id,
             )
 
+        # 更新游戏名到记录
+        if game_ctx.steam_data:
+            async with async_session() as session:
+                await crud.update_record_game_name(
+                    session, record_id, game_ctx.steam_data.get("name", "")
+                )
+
         logger.info(f"[队列] 采集完成 app_id={app_id} action={game_ctx.action}")
 
-        # 发布事件到 SSE
+        # SSE 通知
         from app.api.events import publish
         publish({
             "type": "task_done",
@@ -66,8 +69,6 @@ async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = No
             "post_id": game_ctx.post_id,
         })
 
-        return {"app_id": app_id, "action": game_ctx.action, "post_id": game_ctx.post_id}
-
     except Exception as e:
         logger.error(f"[队列] 采集失败 app_id={app_id}: {e}")
         async with async_session() as session:
@@ -75,15 +76,12 @@ async def collect_game_task(ctx: dict, app_id: int, options: Optional[dict] = No
                 session, record_id, status="failed", error=str(e)
             )
 
-        # 发布失败事件
         from app.api.events import publish
         publish({
             "type": "task_fail",
             "app_id": app_id,
             "error": str(e)[:200],
         })
-
-        raise
 
 
 def _build_pipeline_from_options(options: dict):
@@ -113,48 +111,74 @@ def _build_pipeline_from_options(options: dict):
     return pipeline
 
 
-async def enqueue_collect(app_id: int, options: Optional[dict] = None) -> str:
-    """将采集任务加入队列
+async def enqueue_collect(app_id: int, options: Optional[dict] = None) -> int:
+    """将采集任务写入数据库队列，返回 record_id"""
+    from app.db.engine import async_session
+    from app.db import crud
 
-    返回：job_id 或 'sync' (降级模式)
-    """
-    try:
-        from arq import create_pool
-        from arq.connections import RedisSettings
+    async with async_session() as session:
+        record = await crud.create_record(session, app_id=app_id, options=options)
+        record_id = record.id
 
-        pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-        job = await pool.enqueue_job("collect_game_task", app_id, options)
-        logger.info(f"[队列] 已入队 app_id={app_id} job_id={job.job_id}")
-        return job.job_id
-    except Exception as e:
-        # Redis 不可用 → 降级同步执行
-        logger.warning(f"[队列] Redis 不可用，降级同步执行: {e}")
-        await collect_game_task({}, app_id, options)
-        return "sync"
+    logger.info(f"[队列] 已入队 app_id={app_id} record_id={record_id}")
+    return record_id
 
 
 async def enqueue_batch(
     app_ids: List[int], options: Optional[dict] = None
-) -> List[str]:
+) -> List[int]:
     """批量入队"""
-    job_ids = []
+    record_ids = []
     for app_id in app_ids:
-        job_id = await enqueue_collect(app_id, options)
-        job_ids.append(job_id)
-    return job_ids
+        record_id = await enqueue_collect(app_id, options)
+        record_ids.append(record_id)
+    return record_ids
 
 
-# ARQ Worker 配置（由 arq 命令行工具使用）
-class WorkerSettings:
-    """arq worker 启动时读取此配置
+# ---- 后台 Worker ----
 
-    使用方式: arq app.queue.manager.WorkerSettings
-    """
-    functions = [collect_game_task]
-    max_jobs = 3
-    job_timeout = 300  # 5 分钟超时
+async def _worker_loop():
+    """后台循环：轮询数据库中 pending 任务并执行"""
+    from app.db.engine import async_session
+    from app.db import crud
 
-    @staticmethod
-    def redis_settings():
-        from arq.connections import RedisSettings
-        return RedisSettings.from_dsn(settings.redis_url)
+    logger.info("[Worker] 后台队列 Worker 已启动")
+
+    while True:
+        try:
+            # 查找下一个 pending 任务
+            async with async_session() as session:
+                record = await crud.get_next_pending(session)
+
+            if record:
+                logger.info(f"[Worker] 开始处理 record_id={record.id} app_id={record.app_id}")
+                await collect_game_task(
+                    app_id=record.app_id,
+                    options=record.options,
+                    record_id=record.id,
+                )
+            else:
+                # 没有待处理任务，等待 5 秒后再查
+                await asyncio.sleep(5)
+
+        except asyncio.CancelledError:
+            logger.info("[Worker] 后台队列 Worker 已停止")
+            break
+        except Exception as e:
+            logger.error(f"[Worker] 意外错误: {e}")
+            await asyncio.sleep(5)
+
+
+def start_worker():
+    """启动后台 Worker（在 FastAPI lifespan 中调用）"""
+    global _worker_task
+    _worker_task = asyncio.create_task(_worker_loop())
+    logger.info("[Worker] 后台 Worker 任务已创建")
+
+
+def stop_worker():
+    """停止后台 Worker"""
+    global _worker_task
+    if _worker_task and not _worker_task.done():
+        _worker_task.cancel()
+        logger.info("[Worker] 后台 Worker 任务已取消")

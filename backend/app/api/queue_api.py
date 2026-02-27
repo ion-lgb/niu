@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.api.auth import get_current_user
 from app.queue.manager import enqueue_collect, enqueue_batch
 
+
 router = APIRouter()
 
 
@@ -26,18 +27,18 @@ class BatchEnqueueRequest(BaseModel):
 @router.post("/enqueue")
 async def enqueue(req: EnqueueRequest, _user: str = Depends(get_current_user)):
     """将单个采集任务加入队列"""
-    job_id = await enqueue_collect(req.app_id, req.options)
-    return {"job_id": job_id, "app_id": req.app_id}
+    record_id = await enqueue_collect(req.app_id, req.options)
+    return {"record_id": record_id, "app_id": req.app_id}
 
 
 @router.post("/enqueue/batch")
 async def batch_enqueue(req: BatchEnqueueRequest, _user: str = Depends(get_current_user)):
     """批量入队"""
-    job_ids = await enqueue_batch(req.app_ids, req.options)
+    record_ids = await enqueue_batch(req.app_ids, req.options)
     return {
-        "count": len(job_ids),
+        "count": len(record_ids),
         "jobs": [
-            {"app_id": app_id, "job_id": jid}
-            for app_id, jid in zip(req.app_ids, job_ids)
+            {"app_id": app_id, "record_id": rid}
+            for app_id, rid in zip(req.app_ids, record_ids)
         ],
     }

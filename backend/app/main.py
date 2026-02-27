@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期：启动时初始化数据库和认证"""
+    """应用生命周期：启动时初始化数据库和认证，启动后台 Worker"""
     # 校验必填安全配置
     from app.api.auth import init_auth
     init_auth()
@@ -26,7 +26,15 @@ async def lifespan(app: FastAPI):
     from app.db import init_db
     await init_db()
     logger.info("数据库表已初始化")
+
+    # 启动后台队列 Worker
+    from app.queue.manager import start_worker, stop_worker
+    start_worker()
+
     yield
+
+    # 关闭 Worker
+    stop_worker()
 
 
 app = FastAPI(title=settings.app_title, debug=settings.debug, lifespan=lifespan)
