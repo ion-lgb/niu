@@ -39,6 +39,7 @@ class SettingsResponse(BaseModel):
     enable_ai_rewrite: bool
     enable_ai_analyze: bool
     rewrite_style: str
+    worker_concurrency: int = 2
 
 
 class UpdateSettingsRequest(BaseModel):
@@ -53,6 +54,7 @@ class UpdateSettingsRequest(BaseModel):
     enable_ai_rewrite: Optional[bool] = None
     enable_ai_analyze: Optional[bool] = None
     rewrite_style: Optional[str] = None
+    worker_concurrency: Optional[int] = None
 
 
 # 允许通过 API 修改的字段白名单
@@ -60,6 +62,7 @@ _ALLOWED_FIELDS = {
     "ai_provider", "ai_model", "ai_api_key", "ai_base_url",
     "wp_url", "wp_username", "wp_app_password",
     "default_post_status", "enable_ai_rewrite", "enable_ai_analyze", "rewrite_style",
+    "worker_concurrency",
 }
 
 
@@ -123,6 +126,7 @@ async def get_settings(_user: str = Depends(get_current_user)):
         enable_ai_rewrite=settings.enable_ai_rewrite,
         enable_ai_analyze=settings.enable_ai_analyze,
         rewrite_style=settings.rewrite_style,
+        worker_concurrency=settings.worker_concurrency,
     )
 
 

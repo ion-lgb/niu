@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Select, Checkbox, Button, Space, Tag, Row, Col, Spin, App } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Checkbox, Button, Space, Tag, Row, Col, Spin, App } from 'antd';
 import {
     GlobalOutlined, RobotOutlined, SettingOutlined,
     KeyOutlined, ApiOutlined, SaveOutlined, LoadingOutlined,
@@ -20,6 +20,7 @@ function SettingsPage() {
         enable_ai_rewrite: true,
         enable_ai_analyze: true,
         rewrite_style: 'resource_site',
+        worker_concurrency: 2,
     });
 
     const [loading, setLoading] = useState(true);
@@ -246,6 +247,19 @@ function SettingsPage() {
                                         { value: 'seo_heavy', label: 'SEO 优化' },
                                         { value: 'brief', label: '简短概述' },
                                     ]}
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item label="队列并发数" help="同时采集的游戏数量，建议 1-5，过高可能触发 API 限流">
+                                <InputNumber
+                                    min={1}
+                                    max={5}
+                                    value={config.worker_concurrency}
+                                    onChange={(v) => updateConfig('worker_concurrency', v)}
+                                    style={{ width: '100%' }}
                                 />
                             </Form.Item>
                         </Col>
