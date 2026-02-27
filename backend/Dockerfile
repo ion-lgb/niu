@@ -14,6 +14,17 @@ RUN pip install --no-cache-dir -e . 2>/dev/null || pip install --no-cache-dir .
 # 复制应用代码
 COPY app/ app/
 
+# 复制 .env 作为默认配置模板
+COPY .env .env.default
+
+# 创建数据目录
+RUN mkdir -p /app/data
+
+# 启动入口脚本
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8000
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

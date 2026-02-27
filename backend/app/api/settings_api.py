@@ -15,8 +15,15 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# .env 文件路径（backend 目录下）
-ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
+# .env 文件路径：优先 data/ 目录（Docker 持久化），回退到项目根目录
+_app_root = Path(__file__).resolve().parent.parent.parent
+_data_env = _app_root / "data" / ".env"
+_root_env = _app_root / ".env"
+
+
+def _get_env_path() -> Path:
+    """动态获取 .env 路径：优先 data/ 持久化目录"""
+    return _data_env if _data_env.exists() else _root_env
 
 
 class SettingsResponse(BaseModel):
@@ -59,8 +66,9 @@ _ALLOWED_FIELDS = {
 def _read_env() -> dict:
     """读取 .env 文件为 dict"""
     env = {}
-    if ENV_PATH.exists():
-        for line in ENV_PATH.read_text().splitlines():
+    env_path = _get_env_path()
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
@@ -73,7 +81,7 @@ def _read_env() -> dict:
 def _write_env(env: dict):
     """将 dict 写入 .env 文件"""
     lines = [f"{k}={v}" for k, v in sorted(env.items())]
-    ENV_PATH.write_text("\n".join(lines) + "\n")
+    _get_env_path().write_text("\n".join(lines) + "\n")
 
 
 def _reload_settings(env: dict):

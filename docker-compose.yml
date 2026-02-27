@@ -3,13 +3,13 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    env_file: ./backend/.env
     environment:
       - SC_REDIS_URL=redis://redis:6379
     ports:
       - "8000:8000"
     volumes:
-      - db_data:/app
+      - db_data:/app/data
+      - backend_env:/app/env
     depends_on:
       - redis
 
@@ -29,4 +29,6 @@ services:
 
 volumes:
   db_data:
+  backend_env:
   redis_data:
+

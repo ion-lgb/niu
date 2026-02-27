@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
 
     # --- Database ---
-    database_url: str = "sqlite+aiosqlite:///./collector.db"
+    database_url: str = "sqlite+aiosqlite:///./data/collector.db"
 
     # --- 采集默认设置 ---
     default_post_status: str = "draft"
@@ -52,7 +52,10 @@ class Settings(BaseSettings):
     image_download_timeout: int = 30
     default_category_id: int = 1
 
-    model_config = {"env_file": ".env", "env_prefix": "SC_"}
+    model_config = {
+        "env_file": ["data/.env", ".env"],  # Docker 持久化优先，本地开发回退
+        "env_prefix": "SC_",
+    }
 
 
 settings = Settings()
