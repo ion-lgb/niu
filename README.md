@@ -70,9 +70,9 @@ add_action('init', function() {
 
 ## 技术栈
 
-**后端**：FastAPI · SQLAlchemy · Pydantic · httpx · aiosqlite
+**后端**：[FastAPI](https://github.com/fastapi/fastapi) · [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy) · [Pydantic](https://github.com/pydantic/pydantic) · [httpx](https://github.com/encode/httpx) · [aiosqlite](https://github.com/omnilib/aiosqlite)
 
-**前端**：React · Vite · Ant Design Pro · Axios
+**前端**：[React](https://github.com/facebook/react) · [Vite](https://github.com/vitejs/vite) · [Ant Design Pro](https://github.com/ant-design/pro-components) · [Axios](https://github.com/axios/axios)
 
 ---
 
