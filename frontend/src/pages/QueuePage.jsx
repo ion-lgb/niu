@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ProTable, StatisticCard } from '@ant-design/pro-components';
-import { Tag, Button, Space, Popconfirm, Drawer, Descriptions, Alert, message, Typography } from 'antd';
+import { Tag, Button, Space, Popconfirm, Drawer, Descriptions, Alert, Typography, App } from 'antd';
 import {
     ReloadOutlined, DeleteOutlined, RedoOutlined,
     CheckCircleOutlined, ClockCircleOutlined, PlayCircleOutlined,
@@ -23,6 +23,7 @@ const actionMap = {
 };
 
 export default function QueuePage() {
+    const { message } = App.useApp();
     const [stats, setStats] = useState({ total: 0, completed: 0, running: 0, failed: 0, pending: 0 });
     const [filter, setFilter] = useState('all');
     const actionRef = useRef();

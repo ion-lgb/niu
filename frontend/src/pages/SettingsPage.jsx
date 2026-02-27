@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Select, Checkbox, Button, Space, Tag, Row, Col, message, Spin } from 'antd';
+import { Card, Form, Input, Select, Checkbox, Button, Space, Tag, Row, Col, Spin, App } from 'antd';
 import {
     GlobalOutlined, RobotOutlined, SettingOutlined,
     KeyOutlined, ApiOutlined, SaveOutlined, LoadingOutlined,
@@ -7,6 +7,7 @@ import {
 import { getSettings, updateSettings, testConnection } from '../api';
 
 function SettingsPage() {
+    const { message } = App.useApp();
     const [config, setConfig] = useState({
         wp_url: '',
         wp_username: '',
