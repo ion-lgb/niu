@@ -13,32 +13,7 @@ class ContentBuildProcessor:
         name = steam.get("name", "")
         blocks = []
 
-        # ---- 标题 ----
-        blocks.append(self._heading(f"{name} 中文版下载", level=1))
-
-        # ---- 游戏信息 ----
-        info_parts = []
-        devs = steam.get("developers", [])
-        pubs = steam.get("publishers", [])
-        release = steam.get("release_date", {}).get("date", "")
-        if devs:
-            info_parts.append(f"<strong>开发商:</strong> {', '.join(devs)}")
-        if pubs:
-            info_parts.append(f"<strong>发行商:</strong> {', '.join(pubs)}")
-        if release:
-            info_parts.append(f"<strong>发布日期:</strong> {release}")
-        if info_parts:
-            blocks.append(self._paragraph(" | ".join(info_parts)))
-
-        # ---- 游戏介绍 ----
-        blocks.append(self._heading("游戏介绍", level=2))
-        content = ctx.rewritten_content or steam.get("short_description", "")
-        for para in content.split("\n\n"):
-            para = para.strip()
-            if para:
-                blocks.append(self._paragraph(para))
-
-        # ---- 游戏截图 ----
+        # ---- 游戏截图（放在最前面） ----
         screenshots = steam.get("screenshots", [])
         if screenshots:
             blocks.append(self._heading("游戏截图", level=2))
@@ -49,6 +24,14 @@ class ContentBuildProcessor:
                     gallery_items.append(self._image(url, alt=f"{name} 截图"))
             if gallery_items:
                 blocks.append(self._gallery(gallery_items))
+
+        # ---- 游戏介绍 ----
+        blocks.append(self._heading("游戏介绍", level=2))
+        content = ctx.rewritten_content or steam.get("short_description", "")
+        for para in content.split("\n\n"):
+            para = para.strip()
+            if para:
+                blocks.append(self._paragraph(para))
 
         ctx.block_content = "\n\n".join(blocks)
         logger.info(f"[ContentBuild] 生成 {len(blocks)} 个 Gutenberg 块")
