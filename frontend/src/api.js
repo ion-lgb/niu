@@ -35,9 +35,9 @@ api.interceptors.response.use(
 export const searchGames = (q) => api.get('/steam/search', { params: { q } });
 export const getGameDetails = (appId) => api.get(`/steam/app/${appId}`);
 
-// Collect API
-export const collectGame = (data) => api.post('/collect', data);
-export const previewGame = (data) => api.post('/collect/preview', data);
+// Game Publish API
+export const collectGame = (data) => api.post('/game/publish', data);
+export const previewGame = (data) => api.post('/game/preview', data);
 
 // History API
 export const getRecordStats = () => api.get('/history/records/stats');

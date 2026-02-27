@@ -58,7 +58,7 @@ def _build_pipeline(req: CollectRequest) -> Pipeline:
     return pipeline
 
 
-@router.post("/collect", response_model=CollectResponse)
+@router.post("/game/publish", response_model=CollectResponse)
 async def collect_game(req: CollectRequest, _user: str = Depends(get_current_user)):
     """采集单个游戏（含数据库记录跟踪）"""
 
@@ -116,7 +116,7 @@ async def collect_game(req: CollectRequest, _user: str = Depends(get_current_use
         )
 
 
-@router.post("/collect/preview")
+@router.post("/game/preview")
 async def preview_game(req: CollectRequest, _user: str = Depends(get_current_user)):
     """预览采集结果（不发布）"""
     # 只执行到内容构建，不发布
