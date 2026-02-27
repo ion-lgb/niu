@@ -119,6 +119,18 @@ class WordPressClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def create_category(self, name: str, parent: int = 0) -> dict:
+        """创建文章分类"""
+        async with self._client() as client:
+            resp = await client.post(
+                f"{self.base_url}/wp-json/wp/v2/categories",
+                json={"name": name, "parent": parent},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+        logger.info(f"[WP] 分类创建 id={result.get('id')} name={name}")
+        return result
+
     async def _resolve_tag_ids(self, tag_names: list[str]) -> list[int]:
         """将标签名转为 tag ID（不存在则创建）"""
         ids = []
