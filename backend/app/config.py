@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     max_image_concurrency: int = 5
     image_download_timeout: int = 30
     default_category_id: int = 1
+    worker_concurrency: int = 2  # 队列并发采集数
 
     model_config = {
         "env_file": ["data/.env", ".env"],  # Docker 持久化优先，本地开发回退

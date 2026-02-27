@@ -143,30 +143,60 @@ async def enqueue_batch(
 # ---- 后台 Worker ----
 
 async def _worker_loop():
-    """后台循环：轮询数据库中 pending 任务并执行"""
+    """后台循环：轮询数据库中 pending 任务并并发执行"""
     from app.db.engine import async_session
     from app.db import crud
+    from app.config import settings
 
-    logger.info("[Worker] 后台队列 Worker 已启动")
+    concurrency = settings.worker_concurrency
+    sem = asyncio.Semaphore(concurrency)
+    running_tasks: set[asyncio.Task] = set()
 
-    while True:
-        try:
-            # 查找下一个 pending 任务
-            async with async_session() as session:
-                record = await crud.get_next_pending(session)
+    logger.info(f"[Worker] 后台队列 Worker 已启动 (并发数={concurrency})")
 
-            if record:
-                logger.info(f"[Worker] 开始处理 record_id={record.id} app_id={record.app_id}")
+    async def _run_one(record):
+        async with sem:
+            try:
                 await collect_game_task(
                     app_id=record.app_id,
                     options=record.options,
                     record_id=record.id,
                 )
+            except Exception as e:
+                logger.error(f"[Worker] 任务失败 record_id={record.id}: {e}")
+
+    while True:
+        try:
+            # 清理已完成的任务
+            done = {t for t in running_tasks if t.done()}
+            running_tasks -= done
+
+            # 还能启动几个
+            available = concurrency - len(running_tasks)
+            if available <= 0:
+                await asyncio.sleep(1)
+                continue
+
+            # 拉取待处理任务
+            async with async_session() as session:
+                records = await crud.get_pending_batch(session, limit=available)
+
+            if records:
+                for record in records:
+                    # 先标记为 running，防止被重复拉取
+                    async with async_session() as session:
+                        await crud.update_record_status(session, record.id, status="running")
+                    logger.info(f"[Worker] 开始处理 record_id={record.id} app_id={record.app_id}")
+                    task = asyncio.create_task(_run_one(record))
+                    running_tasks.add(task)
             else:
-                # 没有待处理任务，等待 5 秒后再查
                 await asyncio.sleep(5)
 
         except asyncio.CancelledError:
+            logger.info("[Worker] 后台队列 Worker 正在停止，等待运行中任务完成...")
+            for t in running_tasks:
+                t.cancel()
+            await asyncio.gather(*running_tasks, return_exceptions=True)
             logger.info("[Worker] 后台队列 Worker 已停止")
             break
         except Exception as e:

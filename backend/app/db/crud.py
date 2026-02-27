@@ -198,6 +198,17 @@ async def get_next_pending(session: AsyncSession) -> Optional[CollectRecord]:
     return result.scalar_one_or_none()
 
 
+async def get_pending_batch(session: AsyncSession, limit: int = 2) -> List[CollectRecord]:
+    """批量获取待处理任务（供并发 Worker 使用）"""
+    result = await session.execute(
+        select(CollectRecord)
+        .where(CollectRecord.status == "pending")
+        .order_by(CollectRecord.created_at.asc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
 async def update_record_game_name(
     session: AsyncSession, record_id: int, game_name: str
 ) -> None:
