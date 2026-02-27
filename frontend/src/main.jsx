@@ -1,6 +1,6 @@
 import { StrictMode, useState, createContext, useContext, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { darkTheme, lightTheme } from './theme';
 import App from './App.jsx';
@@ -34,7 +34,9 @@ function Root() {
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme }}>
       <ConfigProvider theme={themeConfig} locale={zhCN}>
-        <App />
+        <AntdApp>
+          <App />
+        </AntdApp>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

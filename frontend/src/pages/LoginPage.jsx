@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Form, Input, Button, Typography, message, Space } from 'antd';
+import { Card, Form, Input, Button, Typography, Space, App } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { login } from '../auth';
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 
 export default function LoginPage({ onLoginSuccess }) {
     const [loading, setLoading] = useState(false);
+    const { message } = App.useApp();
 
     const onFinish = async (values) => {
         setLoading(true);
