@@ -54,6 +54,44 @@ async def start_all_waiting(session: AsyncSession) -> int:
     return result.rowcount
 
 
+async def retry_record(session: AsyncSession, record_id: int) -> bool:
+    """重试失败的任务（failed → pending）"""
+    stmt = (
+        update(CollectRecord)
+        .where(CollectRecord.id == record_id, CollectRecord.status == "failed")
+        .values(status="pending", error=None)
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
+
+
+async def retry_all_failed(session: AsyncSession) -> int:
+    """重试所有失败的任务"""
+    stmt = (
+        update(CollectRecord)
+        .where(CollectRecord.status == "failed")
+        .values(status="pending", error=None)
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount
+
+
+async def has_active_record(session: AsyncSession, app_id: int) -> bool:
+    """检查某 app_id 是否已有进行中的任务（waiting/pending/running）"""
+    from sqlalchemy import func
+    stmt = (
+        select(func.count(CollectRecord.id))
+        .where(
+            CollectRecord.app_id == app_id,
+            CollectRecord.status.in_(["waiting", "pending", "running"]),
+        )
+    )
+    result = await session.execute(stmt)
+    return (result.scalar() or 0) > 0
+
+
 async def update_record_status(
     session: AsyncSession,
     record_id: int,

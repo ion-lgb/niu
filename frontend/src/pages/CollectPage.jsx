@@ -112,7 +112,12 @@ function CollectPage() {
         setBatchLoading(true);
         try {
             const res = await enqueueBatch({ app_ids: selectedIds, options });
-            message.success(`已将 ${res.data.count} 个游戏加入采集队列`);
+            const skipped = res.data.skipped?.length || 0;
+            if (skipped > 0) {
+                message.success(`已将 ${res.data.count} 个游戏加入队列，${skipped} 个已在队列中被跳过`);
+            } else {
+                message.success(`已将 ${res.data.count} 个游戏加入采集队列`);
+            }
             setSelectedIds([]);
         } catch (err) {
             message.error('批量入队失败: ' + (err.response?.data?.detail || err.message));

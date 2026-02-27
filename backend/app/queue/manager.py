@@ -116,6 +116,11 @@ async def enqueue_collect(app_id: int, options: Optional[dict] = None) -> int:
     from app.db.engine import async_session
     from app.db import crud
 
+    # 防重复：检查是否已有进行中的任务
+    async with async_session() as session:
+        if await crud.has_active_record(session, app_id):
+            raise ValueError(f"app_id={app_id} 已在队列中（waiting/pending/running），请勿重复添加")
+
     async with async_session() as session:
         record = await crud.create_record(session, app_id=app_id, options=options, status="waiting")
         record_id = record.id

@@ -7,7 +7,11 @@ import {
     CloseCircleOutlined, AppstoreOutlined, TagsOutlined,
     PauseCircleOutlined, CaretRightOutlined, ThunderboltOutlined,
 } from '@ant-design/icons';
-import { getRecordStats, getRecords, getRecord, deleteRecord, startQueueTask, startAllQueueTasks } from '../api';
+import {
+    getRecordStats, getRecords, getRecord, deleteRecord,
+    startQueueTask, startAllQueueTasks,
+    retryQueueTask, retryAllQueueTasks,
+} from '../api';
 
 const { Text } = Typography;
 
@@ -57,6 +61,11 @@ export default function QueuePage() {
         }
     }, [stats.running, stats.pending, fetchStats]);
 
+    const refreshAll = () => {
+        actionRef.current?.reload();
+        fetchStats();
+    };
+
     const openDetail = async (recordId) => {
         setDrawerOpen(true);
         setDetailLoading(true);
@@ -75,8 +84,7 @@ export default function QueuePage() {
         try {
             await deleteRecord(recordId);
             message.success('已删除');
-            actionRef.current?.reload();
-            fetchStats();
+            refreshAll();
         } catch (err) {
             message.error('删除失败');
         }
@@ -86,8 +94,7 @@ export default function QueuePage() {
         try {
             await startQueueTask(recordId);
             message.success('已开始采集');
-            actionRef.current?.reload();
-            fetchStats();
+            refreshAll();
         } catch (err) {
             message.error('开始采集失败: ' + (err.response?.data?.detail || err.message));
         }
@@ -97,10 +104,29 @@ export default function QueuePage() {
         try {
             const res = await startAllQueueTasks();
             message.success(`已启动 ${res.data.started} 个任务`);
-            actionRef.current?.reload();
-            fetchStats();
+            refreshAll();
         } catch (err) {
             message.error('批量启动失败');
+        }
+    };
+
+    const handleRetry = async (recordId) => {
+        try {
+            await retryQueueTask(recordId);
+            message.success('已重新加入队列');
+            refreshAll();
+        } catch (err) {
+            message.error('重试失败: ' + (err.response?.data?.detail || err.message));
+        }
+    };
+
+    const handleRetryAll = async () => {
+        try {
+            const res = await retryAllQueueTasks();
+            message.success(`已重试 ${res.data.retried} 个失败任务`);
+            refreshAll();
+        } catch (err) {
+            message.error('批量重试失败');
         }
     };
 
@@ -146,7 +172,7 @@ export default function QueuePage() {
         },
         {
             title: '操作',
-            width: 140,
+            width: 150,
             align: 'center',
             render: (_, record) => (
                 <div onClick={(e) => e.stopPropagation()}>
@@ -163,9 +189,18 @@ export default function QueuePage() {
                             </Button>
                         )}
                         {record.status === 'failed' && (
-                            <Button type="text" size="small" icon={<RedoOutlined />} title="重试" />
+                            <Button
+                                type="primary"
+                                size="small"
+                                ghost
+                                icon={<RedoOutlined />}
+                                title="重试"
+                                onClick={() => handleRetry(record.id)}
+                            >
+                                重试
+                            </Button>
                         )}
-                        {(record.status === 'waiting' || record.status === 'failed') && (
+                        {(record.status === 'waiting' || record.status === 'failed' || record.status === 'completed') && (
                             <Popconfirm
                                 title="确定删除？"
                                 okText="删除"
@@ -272,10 +307,23 @@ export default function QueuePage() {
                             </Button>
                         </Popconfirm>
                     ),
+                    (stats.failed || 0) > 0 && (
+                        <Popconfirm
+                            key="retryAll"
+                            title={`确定重试全部 ${stats.failed} 个失败任务？`}
+                            okText="全部重试"
+                            cancelText="取消"
+                            onConfirm={handleRetryAll}
+                        >
+                            <Button icon={<RedoOutlined />}>
+                                全部重试 ({stats.failed})
+                            </Button>
+                        </Popconfirm>
+                    ),
                     <Button
                         key="refresh"
                         icon={<ReloadOutlined />}
-                        onClick={() => actionRef.current?.reload()}
+                        onClick={() => refreshAll()}
                     >
                         刷新
                     </Button>,
