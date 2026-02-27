@@ -16,11 +16,6 @@ class ContentBuildProcessor:
         # ---- 标题 ----
         blocks.append(self._heading(f"{name} 中文版下载", level=1))
 
-        # ---- 头图 ----
-        header_image = steam.get("header_image", "")
-        if header_image:
-            blocks.append(self._image(header_image, alt=name, css_class="steam-header-image"))
-
         # ---- 游戏信息 ----
         info_parts = []
         devs = steam.get("developers", [])
